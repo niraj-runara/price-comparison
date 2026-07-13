@@ -79,13 +79,26 @@ python3 benchmark/run_benchmark.py
 python3 benchmark/plot_results.py
 ```
 
-Sweeps concurrency `1, 5, 10, 20, 40, 80` against both endpoints and writes:
+Sweeps concurrency `1, 5, 10, 20, 40, 80` against both endpoints and writes
+throughput/latency JSON. Cost analysis is **post-hoc** in `plot_results.py`:
+only the RTX baseline hourly price is hardcoded (`BASELINE_HOURLY_USD` or
+`--baseline-hourly`). For each concurrency it solves for the 4× L4 node’s
+break-even `$/hr` that would match the RTX baseline’s `$/1M` tokens:
+
+```text
+break_even_l4_$/hr = baseline_$/hr * (tps_l4 / tps_rtx)
+```
+
+Re-run with a different baseline price without re-benchmarking:
+
+```bash
+python3 benchmark/plot_results.py --baseline-hourly 5.00
+```
+
+Outputs:
 
 - `benchmark/results/combined_results.json`
+- `benchmark/results/breakeven.json`
 - `benchmark/results/plots/throughput.png`
 - `benchmark/results/plots/latency_percentiles.png`
-- `benchmark/results/plots/cost_per_1m_tokens.png`
-
-Hourly costs in `benchmark/cost_model.py` are approximate on-demand list prices
-(~$4.50/hr for `g4-standard-48`, ~$4.00/hr for `g2-standard-48`) — verify before
-trusting cost/1M numbers.
+- `benchmark/results/plots/break_even_hourly.png`

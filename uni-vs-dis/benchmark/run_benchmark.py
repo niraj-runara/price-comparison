@@ -14,9 +14,6 @@ import time
 import urllib.error
 import urllib.request
 
-sys.path.insert(0, os.path.dirname(__file__))
-from cost_model import cost_per_million_tokens
-
 CONCURRENCY_LEVELS = [1, 5, 10, 20, 40, 80]
 DEFAULT_ENV_FILE = os.path.join(os.path.dirname(__file__), "benchmark.env")
 
@@ -126,19 +123,17 @@ def main():
 
     all_results = []
     for concurrency in CONCURRENCY_LEVELS:
-        for label, endpoint, deployment in [
-            ("unified", args.unified_endpoint, "unified"),
-            ("disaggregated", args.disaggregated_endpoint, "disaggregated"),
+        for label, endpoint in [
+            ("unified", args.unified_endpoint),
+            ("disaggregated", args.disaggregated_endpoint),
         ]:
             summary = run_one(endpoint, label, concurrency, args.requests_per_worker,
                                args.input_tokens, args.output_tokens, args.out_dir)
             summary["deployment"] = label
-            summary["cost_per_1m_tokens_usd"] = cost_per_million_tokens(deployment, summary["tokens_per_sec"])
             all_results.append(summary)
             print(f"  -> {summary['tokens_per_sec']:.1f} tok/s, "
                   f"p50={summary['latency_p50_s']:.2f}s p95={summary['latency_p95_s']:.2f}s "
                   f"p99={summary['latency_p99_s']:.2f}s, "
-                  f"${summary['cost_per_1m_tokens_usd']:.2f}/1M tok, "
                   f"errors={summary['num_errors']}", file=sys.stderr)
 
     combined_path = os.path.join(args.out_dir, "combined_results.json")

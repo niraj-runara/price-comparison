@@ -78,8 +78,9 @@ benchmark/plot_results.py
    `--disaggregation-transfer-backend`, and router PD flags match the image
    (`python3 -m sglang.launch_server --help` / `sglang_router.launch_router --help`).
 2. **Health endpoints.** Workers/router are assumed to expose `GET /health`.
-3. **GCP pricing** in `benchmark/cost_model.py` are approximate on-demand list
-   prices — update before trusting cost-per-1M-token numbers.
+3. **Baseline hourly** in `benchmark/cost_model.py` (`BASELINE_HOURLY_USD`) is
+   approximate on-demand for the RTX node — override with
+   `plot_results.py --baseline-hourly` when you have a better number.
 4. **Internal DNS**: instances must share one VPC so short hostnames resolve.
 
 ## Quick start
@@ -169,9 +170,26 @@ python3 benchmark/run_benchmark.py
 python3 benchmark/plot_results.py
 ```
 
-Sweeps concurrency `1, 5, 10, 20, 40, 80` against both endpoints and writes:
+Sweeps concurrency `1, 5, 10, 20, 40, 80` against both endpoints and writes
+throughput/latency JSON. Cost analysis is **post-hoc** in `plot_results.py`:
+only the RTX baseline hourly price is hardcoded (`BASELINE_HOURLY_USD` or
+`--baseline-hourly`). For each concurrency it solves for the disaggregated
+cluster’s break-even `$/hr` that would match the baseline’s `$/1M` tokens:
+
+```text
+break_even_disagg_$/hr = baseline_$/hr * (tps_disagg / tps_unified)
+```
+
+Re-run with a different baseline price without re-benchmarking:
+
+```bash
+python3 benchmark/plot_results.py --baseline-hourly 5.00
+```
+
+Outputs:
 
 - `benchmark/results/combined_results.json`
+- `benchmark/results/breakeven.json`
 - `benchmark/results/plots/throughput.png`
 - `benchmark/results/plots/latency_percentiles.png`
-- `benchmark/results/plots/cost_per_1m_tokens.png`
+- `benchmark/results/plots/break_even_hourly.png`
