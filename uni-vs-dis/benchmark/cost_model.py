@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
-"""Break-even cost helpers for unified (RTX PRO 6000) vs disaggregated.
+"""Break-even cost helpers for unified (Vast.ai RTX PRO 6000) vs disaggregated.
 
-Only the *baseline* hourly cost is hardcoded. For each concurrency level, given
-measured tok/s for both deployments:
-
-  cost/1M = hourly / (tok/s * 3600) * 1e6
-
-Set cost/1M_other == cost/1M_baseline and solve for the other side's hourly:
+Only the *baseline* hourly cost is hardcoded (Vast.ai rental for 1x RTX PRO 6000).
+For each concurrency level, given measured tok/s:
 
   break_even_hourly_other = baseline_hourly * (tps_other / tps_baseline)
 
-Change BASELINE_HOURLY_USD (or pass --baseline-hourly to plot_results.py) and
-re-run plot_results.py on existing results — no need to re-benchmark.
+Change BASELINE_HOURLY_USD (or --baseline-hourly) and re-run plot_results.py —
+no need to re-benchmark.
 """
 
-# Approximate on-demand list for g4-standard-48 (1x RTX PRO 6000), us-central1.
+# Set this to your Vast.ai RTX PRO 6000 rental $/hr (check the instance listing).
 # Override via plot_results.py --baseline-hourly without re-running the load test.
 BASELINE_HOURLY_USD = 4.50
 
@@ -40,7 +36,7 @@ def break_even_hourly(
 
 
 if __name__ == "__main__":
-    print(f"baseline ({BASELINE_DEPLOYMENT}): ${BASELINE_HOURLY_USD:.2f}/hr")
+    print(f"baseline Vast.ai RTX ({BASELINE_DEPLOYMENT}): ${BASELINE_HOURLY_USD:.2f}/hr")
     print(
         "break_even_hourly_other = "
         f"{BASELINE_HOURLY_USD} * (tps_{OTHER_DEPLOYMENT} / tps_{BASELINE_DEPLOYMENT})"

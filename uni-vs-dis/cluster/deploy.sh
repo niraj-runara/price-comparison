@@ -1,24 +1,11 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# deploy.sh — one-shot setup for manually-created, empty instances.
+# deploy.sh — set up the GCP disaggregated cluster only (cpu / prefill / decode).
 #
-# Prereqs:
-#   - You already created the instances (from the runara-base-sglang image)
-#     and can `gcloud compute ssh` into them.
-#   - cluster/deploy.env is filled in with your project/zone/instance names.
-#
-# Per instance, this pushes:
-#   1. A freshly rendered config/cluster.env (built from deploy.env, so it
-#      always matches whatever you actually named your instances) to
-#      /opt/runara/config/cluster.env
-#   2. That instance's setup script, run once as root — installs systemd
-#      units, the wait_for.sh health-check helper, and nginx where relevant.
-#
-# Then it hands off to orchestrate.sh, which brings everything up in the
-# required order: prefill -> decode -> router+nginx.
+# The unified RTX PRO 6000 baseline runs on Vast.ai and is reached via local SSH
+# tunnel (see README / benchmark.env) — it is NOT deployed by this script.
 #
 # Usage: ./cluster/deploy.sh
-# Idempotent — re-run any time after editing deploy.env or a startup script.
 # ==============================================================================
 set -euo pipefail
 
@@ -34,10 +21,6 @@ source "${SCRIPT_DIR}/deploy.env"
 GCLOUD_SSH=(gcloud compute ssh --zone="${ZONE}" --project="${PROJECT_ID}" --tunnel-through-iap)
 GCLOUD_SCP=(gcloud compute scp --zone="${ZONE}" --project="${PROJECT_ID}" --tunnel-through-iap)
 
-# ---------------------------------------------------------------------------
-# Render config/cluster.env from deploy.env so orchestrate.sh and the
-# benchmark scripts stay in sync with your actual instance names.
-# ---------------------------------------------------------------------------
 CLUSTER_ENV="${SCRIPT_DIR}/../config/cluster.env"
 DECODE_NODES="${DECODE_NODE}"
 cat > "${CLUSTER_ENV}" <<EOF
@@ -47,12 +30,10 @@ export ZONE="${ZONE}"
 export CPU_NODE="${CPU_NODE}"
 export PREFILL_NODE="${PREFILL_NODE}"
 export DECODE_NODE="${DECODE_NODE}"
-export UNIFIED_NODE="${UNIFIED_NODE:-unified-node}"
 
 export CPU_NODE_HOST="${CPU_NODE}"
 export PREFILL_NODE_HOST="${PREFILL_NODE}"
 export DECODE_NODE_HOST="${DECODE_NODE}"
-export UNIFIED_NODE_HOST="${UNIFIED_NODE:-unified-node}"
 export DECODE_NODES="${DECODE_NODES}"
 
 export MODEL_GCS_PATH="gs://gcp-models-bucket/qwen2.5-72b-instruct-fp8"
@@ -61,7 +42,6 @@ export MODEL_LOCAL_DIR="/mnt/models/qwen2.5-72b-instruct-fp8"
 export SGLANG_DOCKER_IMAGE="lmsysorg/sglang:v0.5.13-cu129"
 export SGLANG_DOCKER_SHM_SIZE="32g"
 export SGLANG_TP_SIZE=4
-export UNIFIED_TP_SIZE=1
 export SGLANG_MEM_FRACTION=0.85
 export DISAGG_TRANSFER_BACKEND="mooncake_tcp"
 export DISAGG_BOOTSTRAP_PORT=9000
@@ -69,7 +49,6 @@ export DISAGG_BOOTSTRAP_PORT=9000
 export PREFILL_WORKER_PORT=30000
 export DECODE_WORKER_PORT=30001
 export ROUTER_PORT=8000
-export UNIFIED_SERVER_PORT=30000
 export NGINX_PORT=80
 EOF
 echo "Rendered ${CLUSTER_ENV} from deploy.env"
@@ -104,10 +83,6 @@ setup_instance "${PREFILL_NODE}" "prefill-node-startup.sh"
 echo "=== Setting up decode-node (${DECODE_NODE}) ==="
 setup_instance "${DECODE_NODE}" "decode-node-startup.sh"
 
-if [ -n "${UNIFIED_NODE:-}" ]; then
-  echo "=== Setting up unified-node (${UNIFIED_NODE}) ==="
-  setup_instance "${UNIFIED_NODE}" "unified-node-startup.sh"
-fi
-
-echo "=== All instances configured. Bringing cluster up in order... ==="
+echo "=== GCP PD cluster configured. Bringing cluster up in order... ==="
+echo "NOTE: RTX unified baseline is on Vast.ai — open the SSH tunnel before benchmarking."
 exec "${SCRIPT_DIR}/orchestrate.sh" up
