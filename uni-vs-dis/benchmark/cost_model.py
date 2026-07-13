@@ -12,7 +12,7 @@ no need to re-benchmark.
 
 # Set this to your Vast.ai RTX PRO 6000 rental $/hr (check the instance listing).
 # Override via plot_results.py --baseline-hourly without re-running the load test.
-BASELINE_HOURLY_USD = 4.50
+BASELINE_HOURLY_USD = 5.00
 
 BASELINE_DEPLOYMENT = "unified"
 OTHER_DEPLOYMENT = "disaggregated"

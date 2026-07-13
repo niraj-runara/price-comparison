@@ -39,7 +39,7 @@ export DECODE_NODES="${DECODE_NODES}"
 export MODEL_GCS_PATH="gs://gcp-models-bucket/qwen2.5-72b-instruct-fp8"
 export MODEL_LOCAL_DIR="/mnt/models/qwen2.5-72b-instruct-fp8"
 
-export SGLANG_DOCKER_IMAGE="lmsysorg/sglang:v0.5.13-cu129"
+export SGLANG_DOCKER_IMAGE="lmsysorg/sglang:latest"
 export SGLANG_DOCKER_SHM_SIZE="32g"
 export SGLANG_TP_SIZE=4
 export SGLANG_MEM_FRACTION=0.85

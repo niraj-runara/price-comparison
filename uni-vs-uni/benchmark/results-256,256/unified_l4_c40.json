@@ -1,0 +1,14 @@
+{
+  "concurrency": 40,
+  "num_requests": 200,
+  "num_success": 200,
+  "num_errors": 0,
+  "wall_time_s": 161.7030395839829,
+  "tokens_per_sec": 316.6297933033504,
+  "requests_per_sec": 1.2368351300912126,
+  "latency_p50_s": 32.344773292017635,
+  "latency_p95_s": 32.41620551017695,
+  "latency_p99_s": 32.41787175450358,
+  "latency_mean_s": 32.339905640407814,
+  "errors_sample": []
+}
