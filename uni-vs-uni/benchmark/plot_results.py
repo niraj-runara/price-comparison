@@ -68,15 +68,31 @@ def build_breakeven_table(df, baseline_hourly):
     return joined.sort_values("concurrency")
 
 
+def _set_concurrency_axis(ax, concurrencies):
+    """Equidistant ticks labeled by measured concurrency levels."""
+    xs = sorted({int(c) for c in concurrencies})
+    ax.set_xticks(range(len(xs)))
+    ax.set_xticklabels([str(x) for x in xs])
+    ax.minorticks_off()
+    return xs
+
+
 def plot_metric(df, ycol, ylabel, title, out_path):
     fig, ax = plt.subplots(figsize=(7, 5))
+    xs = sorted({int(c) for c in df["concurrency"]})
+    xpos = {c: i for i, c in enumerate(xs)}
     for label, group in df.groupby("deployment"):
         group = group.sort_values("concurrency")
-        ax.plot(group["concurrency"], group[ycol], marker="o", label=label)
+        ax.plot(
+            [xpos[int(c)] for c in group["concurrency"]],
+            group[ycol],
+            marker="o",
+            label=label,
+        )
     ax.set_xlabel("Concurrent users")
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    ax.set_xscale("log", base=2)
+    _set_concurrency_axis(ax, xs)
     ax.legend()
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
@@ -87,14 +103,21 @@ def plot_metric(df, ycol, ylabel, title, out_path):
 
 def plot_latency_percentiles(df, out_path):
     fig, axes = plt.subplots(1, 3, figsize=(16, 5), sharey=True)
+    xs = sorted({int(c) for c in df["concurrency"]})
+    xpos = {c: i for i, c in enumerate(xs)}
     percentiles = [("latency_p50_s", "p50"), ("latency_p95_s", "p95"), ("latency_p99_s", "p99")]
     for ax, (col, name) in zip(axes, percentiles):
         for label, group in df.groupby("deployment"):
             group = group.sort_values("concurrency")
-            ax.plot(group["concurrency"], group[col], marker="o", label=label)
+            ax.plot(
+                [xpos[int(c)] for c in group["concurrency"]],
+                group[col],
+                marker="o",
+                label=label,
+            )
         ax.set_title(f"Latency {name}")
         ax.set_xlabel("Concurrent users")
-        ax.set_xscale("log", base=2)
+        _set_concurrency_axis(ax, xs)
         ax.grid(True, alpha=0.3)
     axes[0].set_ylabel("Latency (s)")
     axes[0].legend()
@@ -106,12 +129,25 @@ def plot_latency_percentiles(df, out_path):
 
 def plot_breakeven(breakeven_df, baseline_hourly, out_path):
     fig, ax = plt.subplots(figsize=(7, 5))
+    xs = sorted({int(c) for c in breakeven_df["concurrency"]})
+    xpos = {c: i for i, c in enumerate(xs)}
+    plot_x = [xpos[int(c)] for c in breakeven_df["concurrency"]]
+    ys = breakeven_df["break_even_other_hourly_usd"]
     ax.plot(
-        breakeven_df["concurrency"],
-        breakeven_df["break_even_other_hourly_usd"],
+        plot_x,
+        ys,
         marker="o",
         label=f"{OTHER_DEPLOYMENT} break-even $/hr",
     )
+    for x, y in zip(plot_x, ys):
+        ax.annotate(
+            f"${y:.2f}",
+            (x, y),
+            textcoords="offset points",
+            xytext=(0, 8),
+            ha="center",
+            fontsize=8,
+        )
     ax.axhline(
         baseline_hourly,
         color="gray",
@@ -124,14 +160,13 @@ def plot_breakeven(breakeven_df, baseline_hourly, out_path):
         f"Break-even {OTHER_DEPLOYMENT} hourly cost\n"
         f"(to match {BASELINE_DEPLOYMENT} $/1M tokens)"
     )
-    ax.set_xscale("log", base=2)
+    _set_concurrency_axis(ax, xs)
     ax.legend()
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
     print(f"wrote {out_path}")
-
 
 def print_summary_table(breakeven_df):
     cols = [
